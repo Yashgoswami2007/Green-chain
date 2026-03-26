@@ -2,9 +2,14 @@ from fastapi import FastAPI
 from models import Observation, Action, Reward
 from environment import GreenChainEnv
 from typing import Dict, Any
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 app = FastAPI(title="Project GreenChain OpenEnv")
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/render")
+
 env = GreenChainEnv()
 
 @app.post("/step")
