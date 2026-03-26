@@ -15,13 +15,17 @@ tags:
 Project GreenChain is an OpenEnv specification compliant RL environment that simulates global procurement and logistics. AI agents must minimize carbon footprint and balance budgets, while also serving as auditors to flag greenwashing fraud in logistics texts.
 
 ## Observation Space
+- `step_count` (int): Number of interaction steps taken currently in the state.
 - `budget_remaining` (float): Current available capital.
 - `current_carbon_footprint` (float): Total environmental impact.
+- `sustainability_score` (float): Mathematical ratio of carbon reduction.
+- `greenwashing_risk_score` (float): Statistical risk variable.
 - `active_suppliers` (list): Current supplying vendors, detailing cost and carbon index.
+- `available_suppliers` (list): The complete directory of possible supplier swaps.
 - `active_shipments` (list): Current active routes and perishability status.
 - `audit_document` (str): Logistics manifest containing text for OCR testing.
-- `greenwashing_risk_score` (float): Statistical risk variable.
 - `identified_flags` (list): Text strings accurately flagged.
+- `total_guesses` (int): Tracked sum of audit flags submitted (for F1 degradation).
 
 ## Action Space
 1. `SwitchSupplier` -> target `new_supplier_id`

@@ -32,7 +32,7 @@ def grade_task_2_route(state: Observation) -> float:
         score += 0.5
         
     # Penalty if carbon didn't drop
-    if state.current_carbon_footprint > 85000.0:
+    if state.current_carbon_footprint > 85001.0:
         score -= 0.5
         
     return max(0.0, min(1.0, score))

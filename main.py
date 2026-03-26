@@ -72,6 +72,8 @@ async def baseline() -> Dict[str, Any]:
     env.step(act3)
     task_3 = evaluate_task("task_3_audit", env.state())
 
+    env.reset() # Cleanup dirty state after baseline test
+
     return {
         "scores": {
             "task_1_swap": task_1,
