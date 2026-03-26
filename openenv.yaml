@@ -1,0 +1,15 @@
+name: "Project GreenChain"
+description: "Autonomous Supply Chain Auditing Environment. An OpenEnv implementation targeting cost vs. carbon footprints and greenwashing fraud detection in logistics documents."
+version: "1.0.0"
+author: "Hackathon Team"
+tags:
+  - OpenEnv
+  - supply-chain
+  - sustainability
+  - auditing
+baseline_executable: "python baseline.py"
+reward_description: "Reward is a multi-objective scalar calculated as (Budget Efficiency * Carbon Reduction) - Step Penalty - Perishability Penalty + Action Shapers. Agents are penalized for invalid actions and time passage, forcing efficient exploration."
+tasks:
+  - task_1_swap
+  - task_2_route
+  - task_3_audit
