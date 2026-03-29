@@ -20,13 +20,21 @@ app.add_middleware(
 async def root():
     return {"status": "ok", "message": "GreenChain OpenEnv is running. Visit /render for the dashboard."}
 
-# Multi-tenant session state
-sessions: Dict[str, GreenChainEnv] = {}
+# Multi-tenant session state — LRU-capped to prevent OOM on HF Spaces
+from collections import OrderedDict
+
+MAX_SESSIONS = 100
+sessions: OrderedDict[str, GreenChainEnv] = OrderedDict()
 
 def get_env(session_id: str = "default") -> GreenChainEnv:
-    if session_id not in sessions:
-        sessions[session_id] = GreenChainEnv()
-    return sessions[session_id]
+    if session_id in sessions:
+        sessions.move_to_end(session_id)  # Mark as recently used
+        return sessions[session_id]
+    if len(sessions) >= MAX_SESSIONS:
+        sessions.popitem(last=False)  # Evict least-recently-used
+    new_env = GreenChainEnv()
+    sessions[session_id] = new_env
+    return new_env
 
 @app.post("/step")
 async def step(action: Action, session_id: str = "default") -> Dict[str, Any]:

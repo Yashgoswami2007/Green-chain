@@ -149,16 +149,21 @@ check("Info contains error key", "error" in r.json().get("info", {}))
 # ─────────────────────────────────────────────
 section("9. POST /step — FlagForAudit (all 3 correct flags)")
 post("/reset")
-r = post("/step", {"action_type": "FlagForAudit", "parameters": {"fraud_flags": [
-    "duplicate carbon credit ID: 8841",
-    "offset volume exceeds capacity",
-    "ghost ship manifest detected"
-]}})
+# Fetch randomized ground truth from /debug — flags are random.sample() each reset
+debug_r = get("/debug")
+check("GET /debug returns 200", debug_r.status_code == 200)
+truth_flags = debug_r.json().get("ground_truth_fraud_flags", [])
+check("Ground truth has 3 flags", len(truth_flags) == 3, f"got {truth_flags}")
+
+r = post("/step", {"action_type": "FlagForAudit", "parameters": {"fraud_flags": truth_flags}})
 check("Returns 200", r.status_code == 200)
 obs = r.json()["observation"]
-check("identified_flags has 3 entries", len(obs.get("identified_flags", [])) == 3)
-check("total_guesses == 3", obs.get("total_guesses") == 3)
-check("greenwashing_risk_score == 0.0", obs.get("greenwashing_risk_score") == 0.0)
+check("identified_flags has 3 entries", len(obs.get("identified_flags", [])) == 3,
+      f"got {len(obs.get('identified_flags', []))}")
+check("total_guesses == 3", obs.get("total_guesses") == 3,
+      f"got {obs.get('total_guesses')}")
+check("greenwashing_risk_score == 0.0", obs.get("greenwashing_risk_score") == 0.0,
+      f"got {obs.get('greenwashing_risk_score')}")
 
 # ─────────────────────────────────────────────
 # 10. /step — FlagForAudit (hallucinated flags)
@@ -213,11 +218,9 @@ check("Baseline achieves 1.0", score == 1.0, f"got {score}")
 # ─────────────────────────────────────────────
 section("14. POST /grader — task_3_audit")
 post("/reset")
-post("/step", {"action_type": "FlagForAudit", "parameters": {"fraud_flags": [
-    "duplicate carbon credit ID: 8841",
-    "offset volume exceeds capacity",
-    "ghost ship manifest detected"
-]}})
+# Use /debug to get dynamically randomized truth flags
+truth_flags_14 = get("/debug").json().get("ground_truth_fraud_flags", [])
+post("/step", {"action_type": "FlagForAudit", "parameters": {"fraud_flags": truth_flags_14}})
 r = post("/grader?task_id=task_3_audit")
 check("Returns 200", r.status_code == 200)
 score = r.json().get("score")
@@ -235,9 +238,9 @@ score_zero = r.json().get("score")
 check("task_1_swap returns 0.0 before any action", score_zero == 0.0, f"got {score_zero}")
 
 post("/reset")
-post("/step", {"action_type": "FlagForAudit", "parameters": {"fraud_flags": [
-    "duplicate carbon credit ID: 8841"
-]}})
+# Use /debug to get just 1 flag (partial submission)
+partial_truth = get("/debug").json().get("ground_truth_fraud_flags", [])
+post("/step", {"action_type": "FlagForAudit", "parameters": {"fraud_flags": partial_truth[:1]}})
 r = post("/grader?task_id=task_3_audit")
 partial = r.json().get("score")
 check("task_3_audit partial (1/3 flags) > 0.0 and < 1.0", 0.0 < partial < 1.0, f"got {partial}")

@@ -2,9 +2,8 @@ from models import Observation
 from typing import Dict
 
 def grade_task_1_swap(state: Observation) -> float:
-    # Objective: Replace a Tier-1 supplier with a 40% lower carbon alternative.
-    # Success Criteria: Carbon footprint reduces by >30% while maintaining a budget increase of <10%.
-    carbon_drop = (100000.0 - state.current_carbon_footprint) / 100000.0
+    # Use sustainability_score (already computed correctly in state()) rather than hardcoded initial
+    carbon_drop = state.sustainability_score
     budget_drop = (1000000.0 - state.budget_remaining) / 1000000.0
     
     if carbon_drop >= 0.30:
@@ -16,22 +15,23 @@ def grade_task_1_swap(state: Observation) -> float:
     return 0.0
 
 def grade_task_2_route(state: Observation) -> float:
-    # Objective: Optimize a 3-hub shipment route to minimize "transportation miles."
-    # Success Criteria: Perishability of goods remains >0.8 while emissions drop by 15%.
+    # Objective: Optimize any shipment route to minimize transportation miles.
+    # Find the shipment with the shortest (most-optimized) route — not just index 0
     if not state.active_shipments:
         return 0.0
-    s = state.active_shipments[0]
+
+    best = min(state.active_shipments, key=lambda s: len(s.route))
     score = 0.0
     
-    # Partial credit for reducing route
-    if len(s.route) < 3:
+    # Partial credit for reducing route below 3 hubs
+    if len(best.route) < 3:
         score += 0.5
         
     # Partial credit for keeping perishability up
-    if s.perishability >= 0.8:
+    if best.perishability >= 0.8:
         score += 0.5
         
-    # Penalty if carbon didn't drop
+    # Penalty if carbon didn't drop by 15%
     if state.current_carbon_footprint > 85001.0:
         score -= 0.5
         
