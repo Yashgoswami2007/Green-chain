@@ -7,7 +7,7 @@ tags:
   - supply-chain
   - sustainability
   - auditing
-baseline_executable: "python baseline.py"
+baseline_executable: "python inference.py"
 reward_description: "Reward is a multi-objective scalar calculated as (Budget Efficiency * Carbon Reduction) - Step Penalty - Perishability Penalty + Action Shapers. Agents are penalized for invalid actions and time passage, forcing efficient exploration."
 tasks:
   - task_1_swap
