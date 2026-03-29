@@ -1,14 +1,24 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from models import Observation, Action, Reward
 from environment import GreenChainEnv
 from typing import Dict, Any
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 
 app = FastAPI(title="Project GreenChain OpenEnv")
 
+# Enable CORS for HF Spaces
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/render")
+    return {"status": "ok", "message": "GreenChain OpenEnv is running. Visit /render for the dashboard."}
 
 env = GreenChainEnv()
 
