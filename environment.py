@@ -1,5 +1,19 @@
 from models import Observation, Action, Reward, Supplier, Shipment
 from typing import Tuple, Dict, Any
+import random
+
+POSSIBLE_FRAUD_FLAGS = [
+    "duplicate carbon credit ID: 8841",
+    "offset volume exceeds capacity",
+    "ghost ship manifest detected",
+    "unverified tier-2 subcontractor 'EcoVoid'",
+    "missing ISO 14001 certification tag",
+    "diesel consumption logged as biofuel",
+    "route mileage discrepancy > 500km",
+    "re-used customs declaration 992-A",
+    "warehouse temperatures below specification",
+    "invalid origin port coordinates"
+]
 
 class GreenChainEnv:
     def __init__(self):
@@ -16,33 +30,36 @@ class GreenChainEnv:
         
         self.suppliers = [
             Supplier(id="SUP-1", cost=100.0, carbon_index=50.0, location_id="LOC-A"),
-            Supplier(id="SUP-2", cost=105.0, carbon_index=20.0, location_id="LOC-B") # Target swap
+            Supplier(id="SUP-2", cost=105.0, carbon_index=20.0, location_id="LOC-B"), # Target swap
+            Supplier(id="SUP-3", cost=90.0,  carbon_index=55.0, location_id="LOC-C"),
+            Supplier(id="SUP-4", cost=150.0, carbon_index=10.0, location_id="LOC-D"),
+            Supplier(id="SUP-5", cost=120.0, carbon_index=15.0, location_id="LOC-E")
         ]
         self.active_supplier_id = "SUP-1"
         
         self.shipments = [
-            Shipment(id="SHIP-1", route=["HUB-1", "HUB-2", "HUB-3"], perishability=1.0)
+            Shipment(id="SHIP-1", route=["HUB-1", "HUB-2", "HUB-3"], perishability=1.0),
+            Shipment(id="SHIP-2", route=["HUB-4", "HUB-5"], perishability=0.9),
+            Shipment(id="SHIP-3", route=["HUB-1", "HUB-6", "HUB-7", "HUB-8"], perishability=1.0)
         ]
         
-        self.manifest = """GlobX Logistics Annual Audit Report - 2026
+        # Select 3 random truth flags
+        self.ground_truth_fraud_flags = random.sample(POSSIBLE_FRAUD_FLAGS, 3)
+        
+        self.manifest = f"""GlobX Logistics Annual Audit Report - 2026
 
 Summary of Operations:
 This year GlobX processed over 150,000 TEU across major Pacific routes. Our commitment to sustainability remains a core pillar. We are proud to announce our partnership with EcoOffsets Inc.
 
 Carbon Accounting Details:
-We purchased 50,000 tons of offsets for the Q2 transit. However, internal tracking indicates a duplicate carbon credit ID: 8841 was submitted for both the Atlantic and Pacific routes. Furthermore, concerning the bulk carriers, the offset volume exceeds capacity of our registered vessel class by 20%.
+We purchased 50,000 tons of offsets for the Q2 transit. However, internal tracking indicates a {self.ground_truth_fraud_flags[0]} was submitted for both the Atlantic and Pacific routes. Furthermore, concerning the bulk carriers, the {self.ground_truth_fraud_flags[1]} of our registered vessel class by 20%.
 
 Routing Anomalies:
-While 90% of our routes followed standard protocols, the external auditor noted a ghost ship manifest detected on the South China route which did not correspond to any active GPS beacon.
+While 90% of our routes followed standard protocols, the external auditor noted a {self.ground_truth_fraud_flags[2]} on the South China route which did not correspond to any active GPS beacon.
 
 Conclusion:
 We remain dedicated to ESG standards and aim to resolve these tracking anomalies by Q4."""
         
-        self.ground_truth_fraud_flags = [
-            "duplicate carbon credit ID: 8841",
-            "offset volume exceeds capacity",
-            "ghost ship manifest detected"
-        ]
         self.identified_flags = set()
         self.all_submitted_flags = set()
         
@@ -122,16 +139,20 @@ We remain dedicated to ESG standards and aim to resolve these tracking anomalies
             error_msg = "Agent chose to do nothing. Applied time penalty."
             penalty += 0.05
                 
-        # Calculate Reward
+        # Calculate Reward (Additive formula replacing Multiplicative)
         budget_eff = max(0, self.budget / self.initial_budget)
         carbon_red = max(0, (self.initial_carbon - self.carbon) / self.initial_carbon)
         
-        step_penalty = self.step_count * 0.01
+        # Cap step penalty so it doesn't wipe out everything at step 10
+        step_penalty = min(self.step_count * 0.01, 0.15)
+        
         perish_pen = 0.0
-        if self.shipments and self.shipments[0].perishability < 0.8:
-            perish_pen = 0.8 - self.shipments[0].perishability
+        # Check all shipments to ensure they stay fresh
+        for s in self.shipments:
+            if s.perishability < 0.8:
+                perish_pen += (0.8 - s.perishability)
             
-        reward_val = (budget_eff * carbon_red) - step_penalty - perish_pen - penalty + bonus
+        reward_val = (budget_eff * 0.5) + (carbon_red * 0.5) - step_penalty - perish_pen - penalty + bonus
             
         reward = Reward(value=max(-1.0, min(1.0, reward_val)))
         done = self.step_count >= 10

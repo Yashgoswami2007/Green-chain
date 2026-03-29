@@ -8,8 +8,16 @@ tags:
   - sustainability
   - auditing
 baseline_executable: "python inference.py"
-reward_description: "Reward is a multi-objective scalar calculated as (Budget Efficiency * Carbon Reduction) - Step Penalty - Perishability Penalty + Action Shapers. Agents are penalized for invalid actions and time passage, forcing efficient exploration."
+reward_description: "Reward is a multi-objective scalar calculated as (Budget Efficiency * 0.5) + (Carbon Reduction * 0.5) - Step Penalty - Perishability Penalty + Action Shapers. Agents are penalized for invalid actions and time passage, forcing efficient exploration."
+observation_space: "A JSON object containing step_count, budget_remaining, current_carbon_footprint, and structures for available/active suppliers, shipments, and the textual audit documents."
+action_space: "A JSON action model with action_type (SwitchSupplier, RerouteShipment, FlagForAudit, DoNothing) and associated contextual parameters."
 tasks:
-  - task_1_swap
-  - task_2_route
-  - task_3_audit
+  - id: task_1_swap
+    difficulty: easy
+    description: "Replace the active Tier-1 supplier with a lower-carbon alternative without exceeding 10% budget increase."
+  - id: task_2_route
+    difficulty: medium
+    description: "Reroute an active shipment to reduce emissions by 15% while keeping perishability above 0.8."
+  - id: task_3_audit
+    difficulty: hard
+    description: "Identify all fraudulent anomalies in the logistics manifest using precision/recall scoring."

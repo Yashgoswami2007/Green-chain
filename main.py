@@ -20,10 +20,17 @@ app.add_middleware(
 async def root():
     return {"status": "ok", "message": "GreenChain OpenEnv is running. Visit /render for the dashboard."}
 
-env = GreenChainEnv()
+# Multi-tenant session state
+sessions: Dict[str, GreenChainEnv] = {}
+
+def get_env(session_id: str = "default") -> GreenChainEnv:
+    if session_id not in sessions:
+        sessions[session_id] = GreenChainEnv()
+    return sessions[session_id]
 
 @app.post("/step")
-async def step(action: Action) -> Dict[str, Any]:
+async def step(action: Action, session_id: str = "default") -> Dict[str, Any]:
+    env = get_env(session_id)
     obs, reward, done, info = env.step(action)
     return {
         "observation": obs.dict(),
@@ -33,17 +40,20 @@ async def step(action: Action) -> Dict[str, Any]:
     }
 
 @app.post("/reset")
-async def reset() -> Dict[str, Any]:
+async def reset(session_id: str = "default") -> Dict[str, Any]:
+    env = get_env(session_id)
     obs = env.reset()
     return {"observation": obs.dict()}
 
 @app.get("/state")
-async def state() -> Dict[str, Any]:
+async def state(session_id: str = "default") -> Dict[str, Any]:
+    env = get_env(session_id)
     obs = env.state()
     return {"observation": obs.dict()}
 
 @app.get("/tasks")
-async def get_tasks() -> Dict[str, Any]:
+async def get_tasks(session_id: str = "default") -> Dict[str, Any]:
+    env = get_env(session_id)
     return {
         "tasks": [
             {"id": "task_1_swap", "difficulty": "easy", "description": "Replace a Tier-1 supplier with a 40% lower carbon alternative."},
@@ -55,15 +65,17 @@ async def get_tasks() -> Dict[str, Any]:
     }
 
 @app.post("/grader")
-async def grader(task_id: str) -> Dict[str, float]:
+async def grader(task_id: str, session_id: str = "default") -> Dict[str, float]:
     from tasks import evaluate_task
+    env = get_env(session_id)
     current_state = env.state()
     score = evaluate_task(task_id, current_state)
     return {"score": score}
 
 @app.get("/baseline")
-async def baseline() -> Dict[str, Any]:
+async def baseline(session_id: str = "default") -> Dict[str, Any]:
     from tasks import evaluate_task
+    env = get_env(session_id)
     
     # Task 1
     env.reset()
@@ -79,11 +91,9 @@ async def baseline() -> Dict[str, Any]:
 
     # Task 3
     env.reset()
-    act3 = Action(action_type="FlagForAudit", parameters={"fraud_flags": [
-            "duplicate carbon credit ID: 8841",
-            "offset volume exceeds capacity",
-            "ghost ship manifest detected"
-        ]})
+    # Pull flags from ground truth dynamically since they are randomized
+    truth_flags = list(env.ground_truth_fraud_flags)
+    act3 = Action(action_type="FlagForAudit", parameters={"fraud_flags": truth_flags})
     env.step(act3)
     task_3 = evaluate_task("task_3_audit", env.state())
 
@@ -98,8 +108,15 @@ async def baseline() -> Dict[str, Any]:
         "total_score": task_1 + task_2 + task_3
     }
 
+@app.get("/debug")
+async def debug(session_id: str = "default") -> Dict[str, Any]:
+    """Exposes ground truth for external smoke tests when randomness makes tests difficult."""
+    env = get_env(session_id)
+    return {"ground_truth_fraud_flags": list(env.ground_truth_fraud_flags)}
+
 @app.get("/render", response_class=HTMLResponse)
-async def render():
+async def render(session_id: str = "default"):
+    env = get_env(session_id)
     obs = env.state()
     active_html = "".join(f"<li>{s.id} (Cost: ${s.cost}, Carbon: {s.carbon_index})</li>" for s in obs.active_suppliers)
     avail_html = "".join(f"<li>{s.id} (Cost: ${s.cost}, Carbon: {s.carbon_index})</li>" for s in obs.available_suppliers)
@@ -107,10 +124,10 @@ async def render():
     flags_html = "".join(f"<li>✅ {f}</li>" for f in obs.identified_flags)
     html = f"""
     <html>
-      <head><title>GreenChain State</title></head>
+      <head><title>GreenChain State ({session_id})</title></head>
       <body style="font-family: sans-serif; padding: 20px;">
         <h1>🌍 Project GreenChain Dashboard</h1>
-        <h3>Step: {obs.step_count}</h3>
+        <h3>Session: {session_id} | Step: {obs.step_count}</h3>
         <p><b>💰 Budget:</b> ${obs.budget_remaining:,.2f}</p>
         <p><b>☁️ Carbon Footprint:</b> {obs.current_carbon_footprint:,.2f} tons</p>
         <p><b>🌱 Sustainability Score:</b> {obs.sustainability_score:.2f}</p>
