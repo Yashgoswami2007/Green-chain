@@ -1,4 +1,4 @@
-from models import Observation, Action, Reward, Supplier, Shipment
+from .models import Observation, Action, Reward, Supplier, Shipment
 from typing import Tuple, Dict, Any
 import random
 
