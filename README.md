@@ -47,7 +47,7 @@ Identify all three inconsistencies (fraud flags) in a logistics manifest. Precis
 Build the local API:
 ```bash
 pip install -r requirements.txt
-uvicorn main:app --port 7860
+uvicorn server.app:app --port 7860
 ```
 
 Run test suite:
