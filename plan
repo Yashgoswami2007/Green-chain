@@ -1,0 +1,113 @@
+Viewed hackathon%20requirenmnets.txt:1-79
+Viewed project-idea.txt:1-28
+
+Based on the hackathon requirements and the "Project GreenChain" concept, here is the complete, end-to-end execution blueprint. This plan is optimized for judge psychology: checking all technical boxes flawlessly while delivering a unique, real-world narrative.
+
+---
+
+# 🏗️ TECHNICAL BLUEPRINT: Project GreenChain
+
+## STEP 1: PROBLEM UNDERSTANDING
+* **The Problem:** Global supply chains optimize almost exclusively for cost, treating carbon emissions as an afterthought. Furthermore, auditing supply chains for sustainability fraud ("greenwashing") relies on manual review of unstructured logistics data, which is slow and error-prone.
+* **Real-World Impact:** An automated environment that trains agents to balance budgets against carbon output—and catches fraudulent reporting—can directly assist real-world procurement teams in meeting global climate goals without burning capital.
+* **Target Users:** AI Researchers/Engineers building and benchmarking large language models (LLMs) and RL agents; eventually, Corporate Sustainability Officers.
+* **Assumptions/Constraints:** We have a strict 24-48 hour hackathon timeline. We **must** adhere precisely to the `OpenEnv` specification. The final payload must be a containerized Hugging Face Space.
+
+## STEP 2: SUCCESS CRITERIA
+* **Functional:** 
+  * Exposes flawless, Pydantic-validated `/step`, `/reset`, `/state`, `/tasks`, `/grader`, and `/baseline` endpoints.
+  * Features exactly 3 escalating tasks (Swap, Route, Audit).
+  * Includes `openenv.yaml` that passes strict validation.
+* **Non-Functional:**
+  * Highly reproducible, deterministic state transitions.
+  * Blazing fast API responses (<50ms for step/reset) to allow rapid agent training.
+  * Painless one-click Docker build.
+* **Demo/Hackathon Win Criteria:** 
+  * Passes the Phase 1 automated Pass/Fail gate on the first try.
+  * Survives the Nemotron 3 Super baseline test without breaking.
+  * Elicits a "wow" from human judges by applying agentic benchmarking to a sophisticated, non-game, enterprise problem.
+
+## STEP 3: HIGH-LEVEL ARCHITECTURE
+* **Simulation Engine (Core):** A lightweight, deterministic Python state machine that tracks the "GreenChain" universe (suppliers, active transit graph, budget, emission totals).
+* **OpenEnv API Layer:** A web server wrapping the Simulation Engine, adhering strictly to the required spec endpoints.
+* **Data Validations:** Strongly typed schemas validating every `Action` from the agent and every `Observation` from the environment.
+* **Task Graders:** Independent, deterministic evaluation scripts that read the engine's state and return a `0.0` to `1.0` score based on the three task requirements.
+* **Baseline Inference Script:** A standalone client script that implements a basic heuristic/LLM logic to play the environment and print baseline scores.
+
+## STEP 4: TECH STACK JUSTIFICATION
+* **Backend Framework: FastAPI (Python)**
+  * *Why:* Python is the undisputed king of AI. FastAPI provides blistering speed, out-of-the-box Pydantic integration (critical for the OpenEnv typed models requirement), and auto-generated Swagger docs for easy debugging.
+* **Containerization: Docker (`python:3.11-slim` base)**
+  * *Why:* Hackathon requirement. A slim image ensures fast build times on Hugging Face infrastructure, reducing deployment friction.
+* **Simulation Data Storage: In-Memory / dicts**
+  * *Why:* For an ephemeral RL environment, spinning up PostgreSQL is over-engineering. Ephemeral memory states reset cleanly via the API and keep the environment unbelievably fast.
+* **Baseline Agent: LiteLLM**
+  * *Why:* Allows the baseline script to call OpenAI, Anthropic, or open-weight models with a single unified interface to solve the Level 3 (Audit) task quickly.
+
+## STEP 5: DATA DESIGN
+* **State & Observation Model:**
+  ```python
+  class Observation(BaseModel):
+      budget_remaining: float
+      current_carbon_footprint: float
+      active_suppliers: List[Dict] # {id, cost, carbon_index}
+      active_shipments: List[Dict] # {id, route, perishability}
+      audit_document: Optional[str] # Text for Level 3 OCR
+  ```
+* **Action Model:**
+  ```python
+  class Action(BaseModel):
+      action_type: Literal["SwitchSupplier", "RerouteShipment", "FlagForAudit"]
+      target_id: str
+      parameters: Dict # e.g., {"new_supplier_id": "SUP-99", "fraud_flags": ["offset_mismatch"]}
+  ```
+
+## STEP 6: CORE LOGIC / ALGORITHMIC PLAN
+1. **`reset()`:** Generates a randomized but solvable supply chain configuration. Resets budget to `$1M` and base emissions to `100k tons`. Returns the initial `Observation`.
+2. **`step(action)` Execution:**
+   * **If `SwitchSupplier`:** Validate supplier exists. Deduct transition fee from budget. Update projected carbon rate.
+   * **If `RerouteShipment`:** Calculate new edge weights on a simple mocked geographic graph. Update perishability penalty based on new transit time. Update emissions.
+   * **If `FlagForAudit`:** Compare the agent's provided `fraud_flags` against the hidden ground-truth tags of the current `audit_document`.
+3. **Reward Calculation:**
+   * Calculate step penalty (-0.1 per step to discourage endless looping).
+   * Calculate budget efficiency = `(Remaining / Starting)`.
+   * Calculate carbon reduction = `(Starting Carbon - Current Carbon) / Starting Carbon`.
+   * Return bounded scalar `R`.
+
+## STEP 7: DEVELOPMENT ROADMAP
+* **Phase 1: The Gate-Passer MVP (Hours 0-6)**
+  * Write Pydantic models. Scaffold FastAPI endpoints.
+  * Hardcode Level 1 (The Basic Swap).
+  * Write `Dockerfile` and `openenv.yaml`.
+  * **Deliverable:** Deploy dummy HF Space immediately. Ensure Automated Phase 1 checks pass.
+* **Phase 2: Core Simulation (Hours 6-16)**
+  * Build the routing logic for Level 2 (The Logistics Puzzle).
+  * Hand-craft 10 "OCR Manifest" templates with hidden fraud markers for Level 3 (The Deep Audit).
+  * Implement the overarching Reward multi-objective math.
+* **Phase 3: Graders & Baseline (Hours 16-24)**
+  * Write the 3 deterministic grader functions.
+  * Build the `baseline.py` inference script to actually hit our deployed API and solve the tasks using a simple heuristic (L1/L2) and an LLM call (L3).
+* **Phase 4: Polish & Documentation (Hours 24-30)**
+  * Write a stellar README.md with ASCII architecture diagrams.
+  * Verify `openenv validate` runs cleanly.
+  * Format log outputs to look highly professional.
+
+## STEP 8: DEMO STRATEGY (CRITICAL)
+* **5-Word Title:** _Autonomous Green Supply Chain Engine_
+* **The Visceral Scenario:** We don't show code first. We tell the story of a shipment of medical supplies. We show the environment punishing an agent for choosing a cheap but hyper-polluting shipping route. We then show the agent pivoting, eating a slight cost increase, but slashing emissions and catching a fake carbon-offset report in a logistics manifest.
+* **The Technical Core:** We will display a split-screen in the README/Demo:
+  * Left: The agent sending exactly one structured JSON Action (`FlagForAudit`).
+  * Right: The environment instantly returning the `step()` response, showing the Reward score spiking and the Grader returning `1.0` for catching the fraud.
+
+## STEP 9: RISKS & MITIGATIONS
+* **Risk:** Hugging Face Spaces port binding fails or times out during deployment.
+  * **Mitigation:** Expose `0.0.0.0:7860` explicitly in the Dockerfile (HF's default port) and include a simple `/health` check. Deploy within the first 2 hours to test infrastructure.
+* **Risk:** The Level 3 Audit task is too subjective for deterministic grading.
+  * **Mitigation:** Do not use an AI to grade the AI. The manifest texts will be generated from templates where the specific fraudulent phrases (e.g., "duplicate carbon credit ID: 8841") are hardcoded as ground truth. The agent must extract that exact string/concept.
+* **Risk:** The baseline script is too complex to finish in time.
+  * **Mitigation:** Baseline agent for L1/L2 will just use simple `if/else` logic to pick the lowest-carbon supplier. We only use AI to solve the L3 audit.
+
+## STEP 10: EXTENSIONS / FUTURE SCOPE
+* **Live ESG API Integration:** Connect the environment to real-world carbon index databases (like Flexport or CDP) to generate living, breathing simulation states based on current global logistics networks.
+* **Multi-Agent Negotiation:** Expand the environment to support two agents: one given the role of "Procurement" (optimize cost) and one "Sustainability" (optimize carbon), forcing them to utilize the `Action` space to negotiate routes.
+* **Startup Pivot:** This environment could evolve into an actual B2B enterprise tool used to simulate the fragility of a company's specific supply chain against upcoming carbon tax legislation.

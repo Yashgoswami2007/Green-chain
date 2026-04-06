@@ -23,9 +23,9 @@ try:
 except ImportError:
     pass
 
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME") or "default-model"
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+HF_TOKEN = os.getenv("HF_TOKEN")
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") # Optional: used if using from_docker_image()
 TASK_NAME = os.getenv("MY_ENV_V4_TASK", "greenchain_audit")
 BENCHMARK = os.getenv("MY_ENV_V4_BENCHMARK", "greenchain")
@@ -170,7 +170,7 @@ def main() -> None:
     except requests.exceptions.ConnectionError:
         sys.exit(1)
 
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     history: List[str] = []
     rewards: List[float] = []
     steps_taken = 0
