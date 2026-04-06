@@ -1,9 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from models import Observation, Action, Reward
 from environment import GreenChainEnv
 from typing import Dict, Any
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 app = FastAPI(title="Project GreenChain OpenEnv")
 
@@ -18,7 +18,23 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "GreenChain OpenEnv is running. Visit /render for the dashboard."}
+    """Redirect root to the dashboard for better UX on HF Spaces."""
+    return RedirectResponse(url="/render")
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, __):
+    return HTMLResponse(
+        status_code=404,
+        content=f"""
+        <html>
+          <body style="font-family: sans-serif; padding: 50px; text-align: center;">
+            <h1 style="color: #e74c3c;">🌍 404 - Not Found</h1>
+            <p>The path <code>{request.url.path}</code> does not exist in GreenChain.</p>
+            <p><a href="/render" style="color: #2ecc71; text-decoration: none; font-weight: bold;">Go to Dashboard →</a></p>
+          </body>
+        </html>
+        """
+    )
 
 # Multi-tenant session state — LRU-capped to prevent OOM on HF Spaces
 from collections import OrderedDict
