@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from .models import Observation, Action, Reward
-from .environment import GreenChainEnv
+from models import Observation, Action, Reward
+from environment import GreenChainEnv
 from typing import Dict, Any
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -90,7 +90,7 @@ async def get_tasks(session_id: str = "default") -> Dict[str, Any]:
 
 @app.post("/grader")
 async def grader(task_id: str, session_id: str = "default") -> Dict[str, float]:
-    from .tasks import evaluate_task
+    from tasks import evaluate_task
     env = get_env(session_id)
     current_state = env.state()
     score = evaluate_task(task_id, current_state)
@@ -98,7 +98,7 @@ async def grader(task_id: str, session_id: str = "default") -> Dict[str, float]:
 
 @app.get("/baseline")
 async def baseline(session_id: str = "default") -> Dict[str, Any]:
-    from .tasks import evaluate_task
+    from tasks import evaluate_task
     env = get_env(session_id)
     
     # Task 1
@@ -170,10 +170,3 @@ async def render(session_id: str = "default"):
     </html>
     """
     return html
-
-def main():
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
-
-if __name__ == "__main__":
-    main()

@@ -1,4 +1,4 @@
-from .models import Observation
+from models import Observation
 from typing import Dict
 
 def grade_task_1_swap(state: Observation) -> float:
