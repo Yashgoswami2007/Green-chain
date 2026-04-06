@@ -4,6 +4,8 @@ from .models import Observation, Action, Reward
 from .environment import GreenChainEnv
 from typing import Dict, Any
 from fastapi.responses import HTMLResponse, RedirectResponse
+import uvicorn
+import os
 
 app = FastAPI(title="Project GreenChain OpenEnv")
 
@@ -170,3 +172,11 @@ async def render(session_id: str = "default"):
     </html>
     """
     return html
+
+def main():
+    """Entry point for the OpenEnv server command."""
+    port = int(os.getenv("PORT", 7860))
+    uvicorn.run("server.app:app", host="0.0.0.0", port=port, reload=True)
+
+if __name__ == "__main__":
+    main()
