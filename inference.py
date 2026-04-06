@@ -26,7 +26,8 @@ except ImportError:
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME") or "default-model"
-
+TASK_NAME = os.getenv("MY_ENV_V4_TASK", "greenchain_audit")
+BENCHMARK = os.getenv("MY_ENV_V4_BENCHMARK", "greenchain")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
 
 MAX_STEPS = 10
@@ -56,6 +57,22 @@ SYSTEM_PROMPT = textwrap.dedent(
     Do not include explanations or additional text.
     """
 ).strip()
+
+
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
+
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
+
+def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 
 def build_history_lines(history: List[str]) -> str:
@@ -137,14 +154,12 @@ def execute_action_in_env(action_str: str) -> dict:
         # evaluate string natively mapping to the API format
         action_payload = eval(action_str, {"__builtins__": {}}, safe_locals)
     except Exception as e:
-        print(f"Failed to parse action string '{action_str}': {e}. Falling back to DoNothing().")
         action_payload = {"action_type": "DoNothing"}
         
     try:
         response = requests.post(f"{ENV_URL}/step", json=action_payload, timeout=10)
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"API Error during step: {e}")
         return {"done": True, "reward": {"value": 0.0}, "observation": {}, "info": {"error": "Connection failed"}}
 
 
@@ -152,17 +167,20 @@ def main() -> None:
     try:
         requests.get(f"{ENV_URL}/state", timeout=5)
     except requests.exceptions.ConnectionError:
-        print(f"Fatal Error: Cannot connect to GreenChain environment at {ENV_URL}. Please start the server.")
         sys.exit(1)
 
-    print(f"Initializing OpenAI Client with API_BASE_URL={API_BASE_URL}, MODEL={MODEL_NAME}")
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     history: List[str] = []
+    rewards: List[float] = []
+    steps_taken = 0
+    score = 0.0
+    success = False
+
+    log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
     try:
         reset_res = requests.post(f"{ENV_URL}/reset", timeout=10).json()
         observation = reset_res.get("observation", {})
-        print("Environment reset successfully. Beginning inference.")
 
         for step in range(1, MAX_STEPS + 1):
             user_prompt = build_user_prompt(step, observation, history)
@@ -188,33 +206,38 @@ def main() -> None:
                 )
                 response_text = completion.choices[0].message.content or ""
             except Exception as exc: 
-                failure_msg = f"Model request failed ({exc}). Using fallback action."
-                print(failure_msg)
                 response_text = FALLBACK_ACTION
 
             action_str = parse_model_action(response_text)
-            print(f"Step {step}: model suggested -> {action_str}")
 
             step_res = execute_action_in_env(action_str)
             observation = step_res.get("observation", {})
-            reward = step_res.get("reward", {}).get("value", 0.0)
+            reward_val = step_res.get("reward", {}).get("value", 0.0)
             done = step_res.get("done", False)
             info = step_res.get("info", {})
-            error_flag = f" ERROR: {info.get('error')}" if "error" in info else ""
+            error_val = info.get("error")
             
-            history_line = f"Step {step}: {action_str} -> reward {reward:+.2f}{error_flag}"
+            rewards.append(reward_val)
+            steps_taken = step
+
+            log_step(step=step, action=action_str, reward=reward_val, done=done, error=error_val)
+
+            history_line = f"Step {step}: {action_str} -> reward {reward_val:+.2f}"
+            if error_val:
+                history_line += f" ERROR: {error_val}"
             history.append(history_line)
-            print(f"  Reward: {reward:+.2f} | Done: {done} {error_flag}")
 
             if done:
-                print("Episode complete.")
                 break
 
-        else:
-            print(f"Reached max steps ({MAX_STEPS}).")
+        total_reward = sum(rewards)
+        # Normalize score assuming total reward might be around 10.0 for max items
+        score = total_reward / 10.0 if total_reward > 0.0 else 0.0
+        score = min(max(score, 0.0), 1.0)
+        success = score >= 0.1
 
-    except Exception as e:
-         print(f"Fatal error during execution: {e}")
+    finally:
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 if __name__ == "__main__":
     main()
