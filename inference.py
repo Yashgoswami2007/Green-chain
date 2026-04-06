@@ -26,6 +26,7 @@ except ImportError:
 API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME") or "default-model"
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME") # Optional: used if using from_docker_image()
 TASK_NAME = os.getenv("MY_ENV_V4_TASK", "greenchain_audit")
 BENCHMARK = os.getenv("MY_ENV_V4_BENCHMARK", "greenchain")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
