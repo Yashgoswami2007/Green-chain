@@ -82,9 +82,9 @@ async def get_tasks(session_id: str = "default") -> Dict[str, Any]:
     env = get_env(session_id)
     return {
         "tasks": [
-            {"id": "task_1_swap", "difficulty": "easy", "description": "Replace a Tier-1 supplier with a 40% lower carbon alternative."},
-            {"id": "task_2_route", "difficulty": "medium", "description": "Optimize a 3-hub shipment route to minimize transportation miles."},
-            {"id": "task_3_audit", "difficulty": "hard", "description": "Identify inconsistencies in a Logistics Manifest."}
+            {"id": "task_1_swap", "difficulty": "easy", "description": "Replace the active Tier-1 supplier with a lower-carbon alternative without exceeding 10% budget increase.", "has_grader": True, "grader": True},
+            {"id": "task_2_route", "difficulty": "medium", "description": "Reroute an active shipment to reduce emissions by 15% while keeping perishability above 0.8.", "has_grader": True, "grader": True},
+            {"id": "task_3_audit", "difficulty": "hard", "description": "Identify all fraudulent anomalies in the logistics manifest using precision/recall scoring.", "has_grader": True, "grader": True}
         ],
         "action_schema": Action.schema(),
         "current_observation": env.state().dict()
