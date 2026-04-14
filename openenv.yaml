@@ -16,14 +16,14 @@ tasks:
     difficulty: easy
     description: "Replace the active Tier-1 supplier with a lower-carbon alternative without exceeding 10% budget increase."
     has_grader: true
-    grader: true
+    grader: "/grader?task_id=task_1_swap"
   - id: task_2_route
     difficulty: medium
     description: "Reroute an active shipment to reduce emissions by 15% while keeping perishability above 0.8."
     has_grader: true
-    grader: true
+    grader: "/grader?task_id=task_2_route"
   - id: task_3_audit
     difficulty: hard
     description: "Identify all fraudulent anomalies in the logistics manifest using precision/recall scoring."
     has_grader: true
-    grader: true
+    grader: "/grader?task_id=task_3_audit"

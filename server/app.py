@@ -82,21 +82,39 @@ async def get_tasks(session_id: str = "default") -> Dict[str, Any]:
     env = get_env(session_id)
     return {
         "tasks": [
-            {"id": "task_1_swap", "difficulty": "easy", "description": "Replace the active Tier-1 supplier with a lower-carbon alternative without exceeding 10% budget increase.", "has_grader": True, "grader": True},
-            {"id": "task_2_route", "difficulty": "medium", "description": "Reroute an active shipment to reduce emissions by 15% while keeping perishability above 0.8.", "has_grader": True, "grader": True},
-            {"id": "task_3_audit", "difficulty": "hard", "description": "Identify all fraudulent anomalies in the logistics manifest using precision/recall scoring.", "has_grader": True, "grader": True}
+            {
+                "id": "task_1_swap",
+                "difficulty": "easy",
+                "description": "Replace the active Tier-1 supplier with a lower-carbon alternative without exceeding 10% budget increase.",
+                "has_grader": True,
+                "grader": "/grader?task_id=task_1_swap"
+            },
+            {
+                "id": "task_2_route",
+                "difficulty": "medium",
+                "description": "Reroute an active shipment to reduce emissions by 15% while keeping perishability above 0.8.",
+                "has_grader": True,
+                "grader": "/grader?task_id=task_2_route"
+            },
+            {
+                "id": "task_3_audit",
+                "difficulty": "hard",
+                "description": "Identify all fraudulent anomalies in the logistics manifest using precision/recall scoring.",
+                "has_grader": True,
+                "grader": "/grader?task_id=task_3_audit"
+            }
         ],
         "action_schema": Action.schema(),
         "current_observation": env.state().dict()
     }
 
-@app.post("/grader")
-async def grader(task_id: str, session_id: str = "default") -> Dict[str, float]:
+@app.api_route("/grader", methods=["GET", "POST"])
+async def grader(task_id: str, session_id: str = "default") -> Dict[str, Any]:
     from .tasks import evaluate_task
     env = get_env(session_id)
     current_state = env.state()
     score = evaluate_task(task_id, current_state)
-    return {"score": score}
+    return {"score": score, "task_id": task_id}
 
 @app.get("/baseline")
 async def baseline(session_id: str = "default") -> Dict[str, Any]:
